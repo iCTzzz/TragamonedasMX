@@ -5,7 +5,7 @@ let credits = 100;
 const perimeterIndices = [
   0,1,2,3,4,5,       // fila superior
   11,17,             // columnas derecha
-  23,22,21,20,19,18, // fila inferior (reversa)
+  23,22,21,20,19,18, // fila inferior
   12,6               // columna izquierda
 ];
 
@@ -20,14 +20,14 @@ for (let i = 0; i < 36; i++) {
     const symbol = symbols[Math.floor(Math.random() * symbols.length)];
     cell.textContent = symbol;
   }
-  // Las demás casillas (el centro) quedan vacías
+
   board.appendChild(cell);
   cells.push(cell);
 }
 
 // Generar botones de símbolos con contador
 const symbolsDiv = document.getElementById("symbols");
-const counters = {}; // guardamos apuestas
+const counters = {};
 symbols.forEach(sym => {
   counters[sym] = 0;
 
@@ -45,7 +45,7 @@ symbols.forEach(sym => {
   btn.appendChild(counterDiv);
 
   btn.addEventListener("click", () => {
-    if (counters[sym] < 9 && counters[sym] < credits) { // max 9 o créditos disponibles
+    if (counters[sym] < 9 && counters[sym] < credits) {
       counters[sym]++;
       counterDiv.textContent = counters[sym];
     }
@@ -57,6 +57,7 @@ symbols.forEach(sym => {
 const creditsEl = document.getElementById("credits");
 const winEl = document.getElementById("win");
 const spinBtn = document.getElementById("spinBtn");
+const spinSound = document.getElementById("spinSound");
 
 spinBtn.addEventListener("click", () => {
   let totalBet = Object.values(counters).reduce((a,b)=>a+b,0);
@@ -72,31 +73,43 @@ spinBtn.addEventListener("click", () => {
   credits -= totalBet;
   creditsEl.textContent = credits;
 
-  // Animar luz alrededor del perímetro
-  let i = 0;
-  let steps = Math.floor(Math.random() * 50) + 30;
-  const interval = setInterval(() => {
+  // Reproducir sonido
+  spinSound.currentTime = 0;
+  spinSound.play();
+
+  let pos = 0;
+
+  // Función que mueve la luz
+  const updateLight = () => {
     cells.forEach(c => c.classList.remove("active"));
-    const idx = perimeterIndices[i % perimeterIndices.length];
+    const idx = perimeterIndices[pos % perimeterIndices.length];
     cells[idx].classList.add("active");
-    i++;
-    if (i > steps) {
-      clearInterval(interval);
-      const finalIdx = perimeterIndices[(i-1) % perimeterIndices.length];
-      const finalSymbol = cells[finalIdx].textContent;
+    pos++;
+  };
 
-      let win = counters[finalSymbol] * 5; // multiplicador
-      credits += win;
-      creditsEl.textContent = credits;
-      winEl.textContent = win;
+  // Intervalo sincronizado con el ritmo del sonido
+  // Ajusta intervalMs para que coincida con el beat real del audio
+  const intervalMs = 150;
+  let animationInterval = setInterval(updateLight, intervalMs);
 
-      // Reiniciar contadores a 0 después del giro
-      for (let sym in counters) {
-        counters[sym] = 0;
-        document.querySelectorAll(".symbol-counter").forEach((div,idx)=>{
-          div.textContent = counters[symbols[idx]];
-        });
-      }
+  // Cuando el audio termine, se detiene la luz
+  spinSound.onended = () => {
+    clearInterval(animationInterval);
+
+    const finalIdx = perimeterIndices[(pos-1) % perimeterIndices.length];
+    const finalSymbol = cells[finalIdx].textContent;
+
+    let win = counters[finalSymbol] * 5; // multiplicador
+    credits += win;
+    creditsEl.textContent = credits;
+    winEl.textContent = win;
+
+    // Reiniciar contadores
+    for (let sym in counters) {
+      counters[sym] = 0;
+      document.querySelectorAll(".symbol-counter").forEach((div,idx)=>{
+        div.textContent = counters[symbols[idx]];
+      });
     }
-  }, 100);
+  };
 });
