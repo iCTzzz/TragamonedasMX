@@ -1,12 +1,12 @@
 const symbols = ["🍉","🍍","⭐","🍒","🍌","🌵","🎁"];
 let credits = 100;
 
-// Casillas del perímetro (24 posiciones) de un tablero 6x6
+// Casillas del perímetro de un tablero 6x6
 const perimeterIndices = [
-  0,1,2,3,4,5,       // fila superior
-  11,17,             // columnas derecha
-  23,22,21,20,19,18, // fila inferior
-  12,6               // columna izquierda
+  0,1,2,3,4,5,
+  11,17,
+  23,22,21,20,19,18,
+  12,6
 ];
 
 // Generar tablero
@@ -25,7 +25,7 @@ for (let i = 0; i < 36; i++) {
   cells.push(cell);
 }
 
-// Generar botones de símbolos con contador
+// Botones de apuesta
 const symbolsDiv = document.getElementById("symbols");
 const counters = {};
 symbols.forEach(sym => {
@@ -73,38 +73,48 @@ spinBtn.addEventListener("click", () => {
   credits -= totalBet;
   creditsEl.textContent = credits;
 
-  // Reproducir sonido
+  // Web Audio API
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaElementSource(spinSound);
+  const analyser = audioCtx.createAnalyser();
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  analyser.fftSize = 64;
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
   spinSound.currentTime = 0;
   spinSound.play();
 
   let pos = 0;
+  let animationFrame;
 
-  // Función que mueve la luz
   const updateLight = () => {
+    analyser.getByteFrequencyData(dataArray);
+    const avg = dataArray.reduce((a,b)=>a+b,0)/dataArray.length;
+    const speed = Math.max(50, 200 - avg); // cuanto más alto avg, más rápido
+
     cells.forEach(c => c.classList.remove("active"));
     const idx = perimeterIndices[pos % perimeterIndices.length];
     cells[idx].classList.add("active");
     pos++;
+
+    animationFrame = setTimeout(updateLight, speed);
   };
 
-  // Intervalo sincronizado con el ritmo del sonido
-  // Ajusta intervalMs para que coincida con el beat real del audio
-  const intervalMs = 150;
-  let animationInterval = setInterval(updateLight, intervalMs);
+  updateLight();
 
-  // Cuando el audio termine, se detiene la luz
   spinSound.onended = () => {
-    clearInterval(animationInterval);
+    clearTimeout(animationFrame);
+    audioCtx.close();
 
     const finalIdx = perimeterIndices[(pos-1) % perimeterIndices.length];
     const finalSymbol = cells[finalIdx].textContent;
 
-    let win = counters[finalSymbol] * 5; // multiplicador
+    let win = counters[finalSymbol] * 5;
     credits += win;
     creditsEl.textContent = credits;
     winEl.textContent = win;
 
-    // Reiniciar contadores
     for (let sym in counters) {
       counters[sym] = 0;
       document.querySelectorAll(".symbol-counter").forEach((div,idx)=>{
