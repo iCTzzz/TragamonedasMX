@@ -1,12 +1,12 @@
 const symbols = ["🍉","🍍","⭐","🍒","🍌","🌵","🎁"];
 let credits = 100;
 
-// Casillas del perímetro (24 posiciones)
+// Casillas del perímetro (24 posiciones) de un tablero 6x6
 const perimeterIndices = [
-  0,1,2,3,4,5,
-  11,17,
-  23,22,21,20,19,18,
-  12,6
+  0,1,2,3,4,5,       // fila superior
+  11,17,             // columnas derecha
+  23,22,21,20,19,18, // fila inferior (reversa)
+  12,6               // columna izquierda
 ];
 
 // Generar tablero
@@ -15,10 +15,12 @@ const cells = [];
 for (let i = 0; i < 36; i++) {
   const cell = document.createElement("div");
   cell.classList.add("cell");
+
   if (perimeterIndices.includes(i)) {
     const symbol = symbols[Math.floor(Math.random() * symbols.length)];
     cell.textContent = symbol;
   }
+  // Las demás casillas (el centro) quedan vacías
   board.appendChild(cell);
   cells.push(cell);
 }
@@ -57,7 +59,6 @@ const winEl = document.getElementById("win");
 const spinBtn = document.getElementById("spinBtn");
 
 spinBtn.addEventListener("click", () => {
-  // Calcular total de apuesta
   let totalBet = Object.values(counters).reduce((a,b)=>a+b,0);
   if (totalBet === 0) {
     alert("Debes apostar al menos 1 crédito en algún símbolo");
